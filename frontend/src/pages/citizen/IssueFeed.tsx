@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { ReportIssueDialog } from "@/components/citizen/ReportIssueDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileWarning, Loader2, SearchX } from "lucide-react";
-import { IssueCard } from "@/components/citizen/IssueCard";
-import { issueService } from "@/services/issueService"; // Service Import
+import { IssueCard } from "@/components/citizen/WasteCard";
+import { issueService } from "@/services/wasteService"; // Service Import
 
 export default function IssueFeed() {
   const [issues, setIssues] = useState<any[]>([]);

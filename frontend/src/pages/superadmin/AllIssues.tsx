@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { issueService } from '@/services/issueService';
+import { issueService } from '@/services/wasteService';
 
 export default function AllIssues() {
   const { toast } = useToast();

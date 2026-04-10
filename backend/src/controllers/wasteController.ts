@@ -10,17 +10,28 @@ const prisma = new PrismaClient();
 export const analyzeWasteImage = async (req: any, res: Response) => {
     try {
         const file = req.file;
+        const { address } = req.body; // Getting the address string from the citizen
+
         if (!file) return res.status(400).json({ message: "No image provided" });
 
-        // A. Call Friend's ML Model
+        // 1. Prepare Multipart Form Data for the ML Model
         const formData = new FormData();
+        
+        // Handling both file path (disk storage) and buffer (memory storage)
         if (file.path) {
             formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
         } else {
             formData.append('file', file.buffer, { filename: file.originalname });
         }
 
-        console.log("Fetching data from Friend's full-stack ML Model...");
+        // Include the address string if your friend's model expects it as part of the form
+        if (address) {
+            formData.append('address', address);
+        }
+
+        console.log("Processing EcoSarthi analysis via ML Model...");
+        
+        // 2. Call the ML Model
         const mlResponse = await axios.post('https://paraphrasable-pat-proautomation.ngrok-free.dev/predict', formData, {
             headers: { 
                 ...formData.getHeaders(), 
@@ -28,46 +39,60 @@ export const analyzeWasteImage = async (req: any, res: Response) => {
             }
         });
 
-        // B. Destructure according to Friend's new JSON format
+        // 3. Destructure the exact JSON format provided
         const { 
             prediction, 
             category, 
             confidence, 
             guidance, 
+            ngo_support,
             nearby_facilities,
             summary 
         } = mlResponse.data;
 
-        // C. Nearby Centers logic 
-        // Agar dost ka model hi facilities de raha hai toh hum wahi use karenge
-        // Warna purani nearby API call bhi rakh sakte ho. 
-        // Filhal hum model wala hi data priority pe rakhenge.
-        const centers = nearby_facilities || [];
-
-        // D. Final Response for your Frontend
-        return res.json({
+        // 4. Map Clean Data for the Frontend
+        const responseData = {
             detection: {
-                item: prediction || "Unknown",
-                category: category || "General",
-                confidence: `${((confidence || 0) * 100).toFixed(2)}%`,
+                item: prediction,
+                category: category,
+                // Format confidence as a percentage (e.g., 1 -> 100%)
+                confidence: typeof confidence === 'number' ? `${(confidence * 100).toFixed(2)}%` : "100%",
                 summary: summary
             },
-            // Mapping nested guidance to flat arrays for frontend ease
-            reuseIdeas: guidance?.reusable?.ideas || [],
-            recycleInstructions: guidance?.recyclable?.methods || [],
-            disposalOptions: guidance?.disposable?.external_options || [],
-            explanations: {
-                reuse: guidance?.reusable?.explanation,
-                recycle: guidance?.recyclable?.explanation,
-                disposal: guidance?.disposable?.explanation
+            // Comprehensive Guidance Structure
+            guidance: {
+                reuse: {
+                    possible: guidance?.reusable?.possible || false,
+                    ideas: guidance?.reusable?.ideas || [],
+                    explanation: guidance?.reusable?.explanation || ""
+                },
+                recycle: {
+                    possible: guidance?.recyclable?.possible || false,
+                    methods: guidance?.recyclable?.methods || [],
+                    explanation: guidance?.recyclable?.explanation || ""
+                },
+                disposal: {
+                    type: guidance?.disposable?.type || "external",
+                    homeMethods: guidance?.disposable?.home_disposal || "",
+                    externalOptions: guidance?.disposable?.external_options || [],
+                    explanation: guidance?.disposable?.explanation || ""
+                }
             },
-            nearbyCenters: centers.slice(0, 3) 
-        });
+            // NGO and Community Support
+            ngo: {
+                available: ngo_support?.available || false,
+                suggestion: ngo_support?.suggestion || ""
+            },
+           
+            
+        };
+
+        return res.json(responseData);
 
     } catch (error: any) {
-        console.error("New JSON Mapping Error:", error.message);
+        console.error("Analysis Error:", error.response?.data || error.message);
         res.status(500).json({ 
-            error: "Failed to process friend's model output.",
+            error: "EcoSarthi analysis failed to sync with the ML service.",
             details: error.message 
         });
     }

@@ -18,7 +18,7 @@ import { UserPlus, Loader2, MapPin } from 'lucide-react'; // MapPin add kiya for
 import { useToast } from '@/hooks/use-toast';
 
 /* ✅ REAL API SERVICE IMPORT */
-import { issueService } from '@/services/issueService'; 
+import { issueService } from '@/services/wasteService'; 
 
 interface AssignStaffDialogProps {
   issue: any; // Using real issue object from backend

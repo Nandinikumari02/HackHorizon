@@ -21,7 +21,7 @@ import { StatusPieChart } from '@/components/department-admin/StatusPieChart';
 import { MonthlyTrendChart } from '@/components/department-admin/MonthlyTrendChart';
 
 // API Service
-import { issueService } from '@/services/issueService';
+import { issueService } from '@/services/wasteService';
 
 export default function Reports() {
   const { user } = useAuth();

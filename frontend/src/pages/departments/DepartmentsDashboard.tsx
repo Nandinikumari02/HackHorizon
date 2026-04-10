@@ -39,7 +39,7 @@ import { IssueDetailsDialog } from '@/components/department-admin/IssueDetailsDi
 import { AddCategoryDialog } from '@/components/department-admin/AddCategoryDialog';
 
 // API Services
-import { issueService } from '@/services/issueService';
+import { issueService } from '@/services/wasteService';
 import { departmentService } from '@/services/departmentService';
 
 export function DepartmentAdminDashboard() {

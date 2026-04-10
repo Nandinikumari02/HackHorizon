@@ -1,52 +1,55 @@
-import api from './api';
+import axios from 'axios';
 
-// Typescript interfaces for better type safety
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    fullname: string;
-    email: string;
-    role: string;
-  };
-}
+const API_URL = "http://localhost:5000/api/auth";
+
+// Create an axios instance to handle token injection automatically
+const authApi = axios.create({
+  baseURL: API_URL,
+});
+
+// Interceptor to add Bearer token to every request
+authApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('eco_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export const authService = {
-  // Citizen Registration
-  register: (userData: any) => api.post('/auth/register', userData),
+  // 1. Get Current User Data (Fixes the 500 error source)
+  getMe: async () => {
+    try {
+      const response = await authApi.get('/me');
+      return response.data;
+    } catch (error) {
+      // If token is invalid or expired, clear storage
+      localStorage.removeItem('eco_token');
+      throw error;
+    }
+  },
 
-  // Login
-  login: async (credentials: any) => {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
-    
+  // 2. Register (Payload matches your backend userData)
+  register: async (userData: any) => {
+    const response = await axios.post(`${API_URL}/register`, userData);
     if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('eco_token', response.data.token);
     }
     return response.data;
   },
 
-
-  forgotPassword: (email: string) => {
-    return api.post('/auth/forgot-password', { email });
+  // 3. Login
+  login: async (credentials: { email: string; pass: string }) => {
+    const response = await axios.post(`${API_URL}/login`, credentials);
+    if (response.data.token) {
+      localStorage.setItem('eco_token', response.data.token);
+    }
+    return response.data;
   },
 
-
-  resetPassword: (resetData: any) => {
-    // resetData includes: email, otp, newPassword
-    return api.post('/auth/reset-password', resetData);
-  },
-
-  // Create Staff & Department Admin
-  createInternalUser: (userData: any) => api.post('/auth/create-internal-user', userData),
-
-  // Get Profile
-  getProfile: () => api.get('/auth/me'),
-
-  // Logout
+  // 4. Logout
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('eco_token');
     window.location.href = '/login';
   }
 };

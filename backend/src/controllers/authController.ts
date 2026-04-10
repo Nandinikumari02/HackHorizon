@@ -26,7 +26,7 @@ export const registerCitizen = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(400).json({ error: "Email or Phone already exists" });
   }
-};
+}; 
 
 // --- 2. CREATE RECYCLING PARTNER OR WASTE STAFF (Protected) ---
 export const createStaffOrPartner = async (req: any, res: Response) => {

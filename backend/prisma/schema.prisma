@@ -30,6 +30,7 @@ enum Role {
   CITIZEN
   RECYCLING_PARTNER // Center Admin (Jo staff assign karega)
   WASTE_STAFF       // Pickup Boy (Jo kachra uthayega)
+  
  
 }
 

@@ -8,30 +8,30 @@ import { AppLayout } from './components/layout/AppLayout';
 import { Toaster } from 'sonner'
 // Citizen
 import {CitizenDashboard} from './pages/citizen/CitizenDashboard';
-import IssueFeed from './pages/citizen/IssueFeed';
-import Rewards from './pages/citizen/Rewards';
-import Notifications from './pages/citizen/Notifications';
+// import IssueFeed from './pages/citizen/IssueFeed';
+// import Rewards from './pages/citizen/Rewards';
+// import Notifications from './pages/citizen/Notifications';
 
 
-// Departments
+// // Departments
+// // import { DepartmentAdminDashboard } from './pages/departments/DepartmentsDashboard';
 // import { DepartmentAdminDashboard } from './pages/departments/DepartmentsDashboard';
-import { DepartmentAdminDashboard } from './pages/departments/DepartmentsDashboard';
-import DepartmentIssues from './pages/departments/DepartmentIssues';
-import Reports from './pages/departments/Reports';
-import StaffManagement from './pages/departments/StaffManagement';
+// import DepartmentIssues from './pages/departments/DepartmentIssues';
+// import Reports from './pages/departments/Reports';
+// import StaffManagement from './pages/departments/StaffManagement';
 
 
-//Staff
-import { StaffDashboard } from './pages/staff/StaffDashboard';
-import Completed from './pages/staff/Completed';
-import MyTasks from './pages/staff/MyTasks';
-import TaskMap from './pages/staff/TaskMap';
-import PrivateRoute from './components/auth/PrivateRoute';
-import CityOverview from './pages/superadmin/CityOverview';
-import AllIssues from './pages/superadmin/AllIssues';
-import Analytics from './pages/superadmin/Analytics';
-import UserManagement from './pages/superadmin/UserManagement';
-import Departments from './pages/superadmin/Departments';
+// //Staff
+// import { StaffDashboard } from './pages/staff/StaffDashboard';
+// import Completed from './pages/staff/Completed';
+// import MyTasks from './pages/staff/MyTasks';
+// import TaskMap from './pages/staff/TaskMap';
+ import PrivateRoute from './components/auth/PrivateRoute';
+// import CityOverview from './pages/superadmin/CityOverview';
+// import AllIssues from './pages/superadmin/AllIssues';
+// import Analytics from './pages/superadmin/Analytics';
+// import UserManagement from './pages/superadmin/UserManagement';
+// import Departments from './pages/superadmin/Departments';
 
 
 
@@ -48,13 +48,13 @@ function App() {
     <Route element={<PrivateRoute allowedRoles={['CITIZEN']} />}>
             <Route path="/citizen" element={<AppLayout />}>
               <Route index element={<CitizenDashboard />} />
-              <Route path="issues" element={<IssueFeed />} />
+              {/* <Route path="issues" element={<IssueFeed />} />
               <Route path="rewards" element={<Rewards />} />
-              <Route path="notifications" element={<Notifications />} />
+              <Route path="notifications" element={<Notifications />} /> */}
             </Route>
           </Route>
 
-
+{/* 
      <Route element={<PrivateRoute allowedRoles={['DEPARTMENT_ADMIN']} />}>
              <Route path="/departments" element={<AppLayout />}>
              <Route index element={<DepartmentAdminDashboard />} /> 
@@ -83,7 +83,7 @@ function App() {
         <Route path="users" element={<UserManagement />} />
         <Route path="departments" element={<Departments />} />
         </Route>
-      </Route>
+      </Route> */}
 
   </Routes>
 

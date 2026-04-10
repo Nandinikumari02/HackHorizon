@@ -34,7 +34,7 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { issueService } from '@/services/issueService'; // Make sure this path is correct
+import { issueService } from '@/services/wasteService'; // Make sure this path is correct
 import { KpiCard } from '@/components/superadmin/KpiCard';
 import { ResolutionRatesList } from '@/components/superadmin/ResolutionRateBar';
 

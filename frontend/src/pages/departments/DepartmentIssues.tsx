@@ -22,7 +22,7 @@ import { IssueDetailsDialog } from "@/components/department-admin/IssueDetailsDi
 import { StatusBadge } from "@/components/shared/StatusBadge";
 
 // Services
-import { issueService } from '@/services/issueService';
+import { issueService } from '@/services/wasteService';
 import { departmentService } from '@/services/departmentService';
 
 export default function DepartmentIssues() {
