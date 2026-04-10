@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  # Database Service
+  db:
+    image: postgres:15
+    container_name: ecosarthi_db_container
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ecosarthi_user
+      POSTGRES_PASSWORD: ecosarthi_password
+      POSTGRES_DB: ecosarthi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ecosarthi_postgres_data:/var/lib/postgresql/data
+
+ 
+
+volumes:
+  ecosarthi_postgres_data:

@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. USER & AUTH (Universal)
+model User {
+  id              String           @id @default(uuid())
+  fullname        String
+  email           String           @unique
+  phoneNumber     String           @unique
+  passwordHash    String
+  role            Role             @default(CITIZEN)
+  points          Int              @default(0)
+  createdAt       DateTime         @default(now())
+  
+  // Relations
+  citizen         Citizen?
+  staff           Staff?           // For Waste Staff & Center Admins
+  wasteLogs       WasteLog[]
+  rewards         Reward[]
+  notifications   Notification[]
+}
+
+enum Role {
+  CITIZEN
+  RECYCLING_PARTNER // Center Admin (Jo staff assign karega)
+  WASTE_STAFF       // Pickup Boy (Jo kachra uthayega)
+ 
+}
+
+// 2. CITIZEN PROFILE
+model Citizen {
+  id             String          @id @default(uuid())
+  userId         String          @unique
+  user           User            @relation(fields: [userId], references: [id])
+  wasteLogs      WasteLog[]
+  pickupRequests PickupRequest[]
+}
+
+// 3. WASTE CATEGORIES (Plastic, E-Waste, etc.)
+model Category {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  centers     RecyclingCenter[]
+  wasteLogs   WasteLog[]
+}
+
+// 4. AI SCAN LOGS (The "Eco-Sarthi" Brain)
+model WasteLog {
+  id              String   @id @default(uuid())
+  imageUrl        String
+  materialName    String   // Identified by AI
+  confidence      Float    
+  
+  // AI Generated Tips
+  recycleTip      String?  @db.Text
+  reuseTip        String?  @db.Text
+  disposeTip      String?  @db.Text
+  
+  status          WasteStatus @default(SCANNED)
+  latitude        Float
+  longitude       Float
+  
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  citizenId       String
+  citizen         Citizen  @relation(fields: [citizenId], references: [id])
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+  
+  pickupRequest   PickupRequest?
+  createdAt       DateTime @default(now())
+}
+
+enum WasteStatus {
+  SCANNED
+  REQUESTED_PICKUP
+  PICKED_UP
+  COMPLETED
+}
+
+// 5. RECYCLING CENTERS (Discovery Feature)
+model RecyclingCenter {
+  id           String          @id @default(uuid())
+  name         String
+  address      String
+  latitude     Float
+  longitude    Float
+  categoryId   String
+  category     Category        @relation(fields: [categoryId], references: [id])
+  requests     PickupRequest[]
+  contactInfo  String?
+}
+
+// 6. PICKUP REQUESTS (The Operational Workflow)
+model PickupRequest {
+  id                String         @id @default(uuid())
+  wasteLogId        String         @unique
+  wasteLog          WasteLog       @relation(fields: [wasteLogId], references: [id])
+  
+  citizenId         String
+  citizen           Citizen        @relation(fields: [citizenId], references: [id])
+  
+  centerId          String
+  center            RecyclingCenter @relation(fields: [centerId], references: [id])
+  
+  staffId           String?        // Assigned by Recycling Partner
+  staff             Staff?          @relation(fields: [staffId], references: [id])
+  
+  status            RequestStatus  @default(PENDING)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+enum RequestStatus {
+  PENDING    // User نے Request کی
+  ASSIGNED   // Admin نے Staff assign کر دیا
+  COMPLETED  // Pickup done & Points awarded
+  CANCELLED
+}
+
+// 7. STAFF PROFILE (Pickup Team)
+model Staff {
+  id           String          @id @default(uuid())
+  userId       String          @unique
+  user         User            @relation(fields: [userId], references: [id])
+  organization String?         // Working for which center
+  pickups      PickupRequest[]
+}
+
+// 8. REWARDS & NOTIFICATIONS
+model Reward {
+  id        String   @id @default(uuid())
+  points    Int
+  activity  String   // e.g., "Successfully recycled E-waste"
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

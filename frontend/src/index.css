@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+/* ========================== */
+/* Civic Sarathi Green Theme  */
+/* ========================== */
+
+@layer base {
+  :root {
+    /* ----------------- Core Backgrounds ----------------- */
+    --background: 158 30% 98%;        /* very light mint/green for overall background */
+    --foreground: 210 24% 16%;        /* dark text for readability */
+
+    /* Cards & Surfaces */
+    --card: 0 0% 100%;                /* white cards */
+    --card-foreground: 210 24% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 24% 16%;
+
+    /* Primary Civic Green */
+    --primary: 158 64% 52%;           /* Civic Green */
+    --primary-foreground: 0 0% 100%;  /* white text on primary elements */
+
+    /* Secondary Surface */
+    --secondary: 158 30% 92%;         /* lighter green surface */
+    --secondary-foreground: 158 64% 32%;
+
+    /* Muted Tones */
+    --muted: 158 30% 88%;             /* subtle muted surface */
+    --muted-foreground: 210 24% 16%;
+
+    /* Accent */
+    --accent: 158 50% 90%;            /* hover/interactive accents */
+    --accent-foreground: 158 64% 32%;
+
+    /* Destructive / Alerts */
+    --destructive: 0 84% 60%;         /* red for errors */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 158 30% 85%;
+    --input: 158 30% 90%;
+    --ring: 158 64% 52%;
+
+    --radius: 0.625rem;
+
+    /* =================== Semantic Status Colors =================== */
+    --success: 152 69% 31%;           /* green success */
+    --success-foreground: 0 0% 100%;
+    --success-light: 152 50% 94%;
+
+    --warning: 38 92% 50%;            /* amber warning */
+    --warning-foreground: 0 0% 100%;  /* white text for visibility */
+    --warning-light: 38 70% 94%;
+
+    --info: 158 64% 42%;              /* darker green for in-progress / info */
+    --info-foreground: 0 0% 100%;
+    --info-light: 158 50% 92%;
+
+    /* Status badges */
+    --status-pending: 40 90% 60%;     /* slightly darker amber for visibility */
+    --status-in-progress: 158 64% 42%;
+    --status-resolved: 152 69% 31%;
+
+    /* Sidebar - Lightened */
+    --sidebar-background: 158 44% 28%;   /* lighter deep green */
+    --sidebar-foreground: 158 92% 92%;   /* soft mint/cream text */
+    --sidebar-primary: 158 64% 52%;      /* Civic Green */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 158 50% 42%;       /* darker green accent */
+    --sidebar-accent-foreground: 158 92% 92%;
+    --sidebar-border: 158 40% 35%;
+    --sidebar-ring: 158 64% 52%;
+    --sidebar-shadow: 0 6px 18px -4px hsl(158 64% 52% / 0.15);
+
+    /* Chart Colors */
+    --chart-1: 158 64% 52%;
+    --chart-2: 152 69% 31%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 158 64% 42%;
+    --chart-5: 158 50% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  /* Status Badge Variants */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-semibold;
+  }
+
+  .status-badge-pending {
+    background-color: hsl(var(--status-pending));
+    color: hsl(var(--warning-foreground));
+    @apply shadow-sm;
+  }
+
+  .status-badge-in-progress {
+    background-color: hsl(var(--status-in-progress));
+    color: hsl(var(--info-foreground));
+    @apply shadow-sm;
+  }
+
+  .status-badge-resolved {
+    background-color: hsl(var(--status-resolved));
+    color: hsl(var(--success-foreground));
+    @apply shadow-sm;
+  }
+
+  /* Glass Effect */
+  .glass {
+    @apply bg-white/20 backdrop-blur-md border border-white/10;
+  }
+
+  /* Gradient Backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(158 64% 52%) 0%, hsl(158 50% 42%) 100%);
+  }
+
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(152 69% 31%) 0%, hsl(152 60% 40%) 100%);
+  }
+
+  /* Card Hover Effect */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  }
+
+  /* Stats Cards */
+  .stats-card {
+    @apply bg-card rounded-xl p-5 border shadow-sm card-hover;
+  }
+
+  .stats-card-pending {
+    @apply rounded-xl p-5 border shadow-sm card-hover;
+    background-color: hsl(38 90% 95%);  /* very light amber for pending */
+    border-color: hsl(38 90% 60%);      /* matching amber border */
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
