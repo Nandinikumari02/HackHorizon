@@ -131,26 +131,31 @@ export const login = async (req: Request, res: Response) => {
 // --- 4. GET ME (Personal Profile Sync) ---
 export const getMe = async (req: any, res: Response) => {
   try {
+    console.log("getMe called with req.user:", req.user);
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        fullname: true,
-        email: true,
-        role: true,
-        points: true,
-        staff: {
-          select: { organization: true, designation: true }
-        },
-        citizen: true
-      },
+      where: { id: req.user.id }
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.json(user);
+    // Return the user without sensitive fields
+    res.json({
+      id: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      role: user.role,
+      points: user.points,
+      phoneNumber: user.phoneNumber,
+      createdAt: user.createdAt
+    });
   } catch (error: any) {
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("getMe Error:", error.message, error.stack);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 

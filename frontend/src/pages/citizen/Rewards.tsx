@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { rewardService } from '@/services/rewardService';
+import { wasteService } from '@/services/wasteService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Star, Award, Target, TrendingUp, CheckCircle2, ThumbsUp, FileWarning, Loader2 } from 'lucide-react';
@@ -17,15 +18,33 @@ const badgeThresholds = [
 export default function Rewards() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [pointsData, setPointsData] = useState({ totalPoints: 0, history: [] });
+  const [pointsData, setPointsData] = useState<{ totalPoints: number; history: any[] }>({
+    totalPoints: 0,
+    history: [],
+  });
+  const [stats, setStats] = useState({
+    totalScans: 0,
+    recycledItems: 0,
+    carbonSaved: 0,
+  });
 
   const fetchRewards = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await rewardService.getMyRewards();
-      setPointsData(res.data);
-    } catch (error) {
-      toast.error("Failed to load rewards data");
+      const [rewardsRes, statsRes] = await Promise.all([
+        rewardService.getMyRewards(),
+        wasteService.getStats().catch(() => null),
+      ]);
+      setPointsData(rewardsRes.data);
+      if (statsRes) {
+        setStats({
+          totalScans: statsRes.totalScans ?? 0,
+          recycledItems: statsRes.recycledItems ?? 0,
+          carbonSaved: statsRes.carbonSaved ?? 0,
+        });
+      }
+    } catch {
+      toast.error('Failed to load rewards data');
     } finally {
       setLoading(false);
     }
@@ -108,9 +127,9 @@ export default function Rewards() {
             <CardTitle className="text-base">Impact Summary</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ImpactItem icon={FileWarning} label="Issues Reported" value="--" color="text-blue-500" bg="bg-blue-500/10" />
-            <ImpactItem icon={CheckCircle2} label="Issues Resolved" value="--" color="text-green-500" bg="bg-green-500/10" />
-            <ImpactItem icon={ThumbsUp} label="Upvotes Received" value="--" color="text-amber-500" bg="bg-amber-500/10" />
+            <ImpactItem icon={FileWarning} label="Total scans" value={String(stats.totalScans)} color="text-blue-500" bg="bg-blue-500/10" />
+            <ImpactItem icon={CheckCircle2} label="Items recycled" value={String(stats.recycledItems)} color="text-green-500" bg="bg-green-500/10" />
+            <ImpactItem icon={ThumbsUp} label="Est. CO₂ saved (kg)" value={stats.carbonSaved.toFixed(1)} color="text-amber-500" bg="bg-amber-500/10" />
           </CardContent>
         </Card>
       </div>

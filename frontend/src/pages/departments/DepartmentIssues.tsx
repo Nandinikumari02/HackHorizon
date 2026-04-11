@@ -66,16 +66,6 @@ export default function DepartmentIssues() {
     fetchData();
   }, [fetchData]);
 
-  const handleAssign = async (issueId: string, staffId: string) => {
-    try {
-      await issueService.assignIssue({ issueId, staffId });
-      toast({ title: "Success", description: "Task assigned successfully" });
-      fetchData(true); // ✅ Use silent refresh after assignment
-    } catch (error: any) {
-      toast({ title: "Failed", description: "Assignment failed", variant: "destructive" });
-    }
-  };
-
   const filteredIssues = issues.filter((issue) => {
     const searchTerm = searchQuery.toLowerCase();
     const titleMatch = issue.title?.toLowerCase().includes(searchTerm);
@@ -154,7 +144,7 @@ export default function DepartmentIssues() {
                       <AssignStaffDialog
                         issue={issue}
                         staff={staff}
-                        onAssign={handleAssign}
+                        onSuccess={() => fetchData(true)}
                       />
                     )}
                   </div>

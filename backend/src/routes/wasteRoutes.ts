@@ -4,11 +4,15 @@ import {
     logWasteAndRequestPickup, 
     getMyWasteLogs, 
     getRecyclingCenters,
+    getWasteCategories,
+    getNearbyRecyclingCenters,
     getPendingPickups,
     assignPickupStaff,
     getMyTasks,
     completePickup,
-    getCitizenStats
+    getCitizenStats,
+    getOrganizationStaff,
+    getDepartmentPickupRequests
 } from '../controllers/wasteController';
 import { authenticate, checkRole } from '../middleware/authMiddleware';
 import { upload } from '../middleware/uploadMiddleware';
@@ -44,6 +48,21 @@ router.post(
     assignPickupStaff
 );
 
+router.get(
+    '/organization-staff',
+    authenticate,
+    checkRole(['RECYCLING_PARTNER', 'ADMIN']),
+    getOrganizationStaff
+);
+
+// Department dashboard ke liye pickup requests
+router.get(
+    '/department-pickups',
+    authenticate,
+    checkRole(['RECYCLING_PARTNER', 'ADMIN']),
+    getDepartmentPickupRequests
+);
+
 
 // --- 3. OPERATIONS (Waste Staff Only) ---
 // Staff ko unke assigned tasks dikhana
@@ -66,5 +85,8 @@ router.post(
 // --- 4. PUBLIC ---
 // Nearby centers ki location dekhne ke liye
 router.get('/centers', getRecyclingCenters);
+// All categories (for scan log / pickup matching without requiring a center row)
+router.get('/categories', getWasteCategories);
+router.get('/nearby-centers', getNearbyRecyclingCenters);
 
 export default router;

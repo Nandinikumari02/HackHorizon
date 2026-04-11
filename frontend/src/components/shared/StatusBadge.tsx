@@ -1,12 +1,15 @@
 import { cn } from '@/lib/utils';
 import { Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
-// Backend statuses usually look like these
+// Backend statuses from Prisma enum
 const STATUS_LABELS: Record<string, string> = {
+  scanned: 'Scanned',
+  requested_pickup: 'Pickup Requested',
+  picked_up: 'Picked Up',
+  completed: 'Completed',
   pending: 'Pending',
-  in_progress: 'In Progress',
-  resolved: 'Resolved',
-  rejected: 'Rejected'
+  assigned: 'Assigned',
+  cancelled: 'Cancelled'
 };
 
 interface StatusBadgeProps {
@@ -21,20 +24,33 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
 
   // 2. Dynamic Config Map (Switch ki jagah Map use karna zyada fast aur safe hai)
   const statusConfig: Record<string, any> = {
-    pending: {
+    scanned: {
       icon: Clock,
-      style: 'bg-amber-100 text-amber-700 border-amber-200',
-    },
-    in_progress: {
-      icon: Loader2,
       style: 'bg-blue-100 text-blue-700 border-blue-200',
+    },
+    requested_pickup: {
+      icon: Loader2,
+      style: 'bg-amber-100 text-amber-700 border-amber-200',
       animate: true
     },
-    resolved: {
+    picked_up: {
+      icon: CheckCircle2,
+      style: 'bg-purple-100 text-purple-700 border-purple-200',
+    },
+    completed: {
       icon: CheckCircle2,
       style: 'bg-green-100 text-green-700 border-green-200',
     },
-    rejected: {
+    pending: {
+      icon: Clock,
+      style: 'bg-gray-100 text-gray-700 border-gray-200',
+    },
+    assigned: {
+      icon: Loader2,
+      style: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      animate: true
+    },
+    cancelled: {
       icon: AlertCircle,
       style: 'bg-red-100 text-red-700 border-red-200',
     }

@@ -43,9 +43,13 @@ export default function CityOverview() {
     activeStaff: 0,
     resolutionRate: 0
   });
-  const [departments, setDepartments] = useState([]);
+  const [departments, setDepartments] = useState<
+    { name: string; issues: number; resolved: number; color: string }[]
+  >([]);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState<{ id: string; type: string; message: string; time: string }[]>(
+    []
+  );
 
   const fetchData = async (isRefresh = false) => {
     try {

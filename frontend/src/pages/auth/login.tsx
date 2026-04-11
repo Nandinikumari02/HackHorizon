@@ -68,11 +68,20 @@ export default function Login() {
 
       setTimeout(() => {
         switch (role) {
-          case 'CITIZEN': navigate('/citizen'); break;
-          case 'STAFF': navigate('/staff'); break;
-          case 'DEPARTMENT_ADMIN': navigate('/departments'); break;
-          case 'SUPER_ADMIN': navigate('/superadmin'); break;
-          default: navigate('/');
+          case 'CITIZEN':
+            navigate('/citizen');
+            break;
+          case 'WASTE_STAFF':
+            navigate('/staff');
+            break;
+          case 'RECYCLING_PARTNER':
+            navigate('/partner');
+            break;
+          case 'ADMIN':
+            navigate('/partner');
+            break;
+          default:
+            navigate('/');
         }
       }, 50);
     } catch (error: any) {

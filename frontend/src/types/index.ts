@@ -1,44 +1,32 @@
-
-export type UserRole = 'CITIZEN' | 'DEPARTMENT_ADMIN' | 'STAFF' | 'SUPER_ADMIN';
+/** Matches backend Prisma `Role` + optional `ADMIN` used in route guards. */
+export type UserRole = 'CITIZEN' | 'RECYCLING_PARTNER' | 'WASTE_STAFF' | 'ADMIN';
 
 export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'SUBMITTED';
 
-export type IssueCategory = string; 
+export type IssueCategory = string;
 
 export interface User {
-  name: string;
   id: string;
-  fullname: string; 
+  fullname: string;
   email: string;
   role: UserRole;
-  departmentId?: string; 
-  department?: {
-    id: string;
-    name: string;
-  } | any; 
-  departmentAdmin?: {
-    departmentId: string;
-    department?: {
-      id: string;
-      name: string;
-    };
-  };
-  staff?: {
-    departmentId: string;
-    department?: {
-      id: string;
-      name: string;
-    };
-  };
   points?: number;
+  phoneNumber?: string;
+  createdAt?: string;
   avatar?: string;
+  /** Legacy civic demo (department admin pages) */
+  departmentId?: string;
+  department?: { id: string; name: string };
+  departmentAdmin?: { departmentId: string; department?: { id: string; name: string } };
+  staff?: { departmentId: string; department?: { id: string; name: string } };
 }
 
+/** Legacy civic-issue type (superadmin / department demo pages). */
 export interface Issue {
   id: string;
   title: string;
   description: string;
-  category: IssueCategory; 
+  category: IssueCategory;
   status: IssueStatus;
   location: {
     lat: number;
@@ -50,11 +38,10 @@ export interface Issue {
   reportedBy: string;
   reportedAt: Date;
   assignedTo?: string;
-  // Staff nesting for frontend display
   staff?: {
     user: {
       fullname: string;
-    }
+    };
   };
   resolvedAt?: Date;
   upvotes: number;
@@ -74,11 +61,9 @@ export interface StaffMember {
   _count?: {
     tasks: number;
   };
-  activeTasks: number; // Legacy support for UI
+  activeTasks: number;
 }
 
-// ✅ Dynamic Label Helper
-// Kyunki categories ab dynamic hain, hum ise string keys par map karenge
 export const CATEGORY_LABELS: Record<string, string> = {
   water: 'Water Supply',
   electricity: 'Electricity',
@@ -88,7 +73,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
   drainage: 'Drainage',
 };
 
-// ✅ Backend Status Labels (Sync with Database Enum)
 export const STATUS_LABELS: Record<IssueStatus, string> = {
   SUBMITTED: 'Submitted',
   OPEN: 'Pending',

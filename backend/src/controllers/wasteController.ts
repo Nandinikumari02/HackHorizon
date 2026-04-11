@@ -4,87 +4,159 @@ import { processImages } from "../middleware/uploadMiddleware"; // Assuming same
 import axios from "axios";
 import FormData from "form-data";
 import fs from "fs";
+import { distanceKm } from "../utils/haversine";
 
 const prisma = new PrismaClient();
+
+const DEFAULT_ML_BASE = "https://paraphrasable-pat-proautomation.ngrok-free.dev";
 
 export const analyzeWasteImage = async (req: any, res: Response) => {
     try {
         const file = req.file;
-        const { address } = req.body; // Getting the address string from the citizen
+        const { address } = req.body;
 
         if (!file) return res.status(400).json({ message: "No image provided" });
 
-        // 1. Prepare Multipart Form Data for the ML Model
         const formData = new FormData();
-        
-        // Handling both file path (disk storage) and buffer (memory storage)
         if (file.path) {
             formData.append('file', fs.createReadStream(file.path), { filename: file.originalname });
         } else {
             formData.append('file', file.buffer, { filename: file.originalname });
         }
 
-        // Include the address string if your friend's model expects it as part of the form
         if (address) {
             formData.append('address', address);
         }
 
-        console.log("Processing EcoSarthi analysis via ML Model...");
-        
-        // 2. Call the ML Model
-        const mlResponse = await axios.post('https://paraphrasable-pat-proautomation.ngrok-free.dev/predict', formData, {
-            headers: { 
-                ...formData.getHeaders(), 
-                'ngrok-skip-browser-warning': 'true' 
-            }
+        // 1. Call the ML Model (FastAPI)
+        const mlBase = (process.env.ML_SERVICE_BASE_URL || DEFAULT_ML_BASE).replace(/\/$/, "");
+        const predictPath = process.env.ML_PREDICT_PATH || "/predict";
+        const predictUrl = `${mlBase}${predictPath.startsWith("/") ? predictPath : "/" + predictPath}`;
+
+        const mlResponse = await axios.post(predictUrl, formData, {
+            headers: {
+                ...formData.getHeaders(),
+                "ngrok-skip-browser-warning": "true",
+            },
+            timeout: 120000,
         });
 
-        // 3. Destructure the exact JSON format provided
-        const { 
-            prediction, 
-            category, 
-            confidence, 
-            guidance, 
-            ngo_support,
-            nearby_facilities,
-            summary 
-        } = mlResponse.data;
+        // 2. Normalize ML payload (camelCase + snake_case / alternate keys)
+        const raw = mlResponse.data || {};
+        const mlData = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
 
-        // 4. Map Clean Data for the Frontend
+        const prediction =
+            (mlData.prediction as string) ??
+            (mlData.predicted_item as string) ??
+            (mlData.item as string) ??
+            (mlData.label as string) ??
+            (mlData.material as string) ??
+            "Unknown Item";
+
+        const category =
+            (mlData.category as string) ??
+            (mlData.waste_category as string) ??
+            (mlData.class_name as string) ??
+            "General";
+
+        const confidenceRaw = mlData.confidence ?? mlData.score ?? mlData.probability ?? 1.0;
+        const confidence =
+            typeof confidenceRaw === "number"
+                ? confidenceRaw
+                : parseFloat(String(confidenceRaw).replace(/[^\d.-]/g, "")) || 1.0;
+
+        const report =
+            (typeof mlData.report === "object" && mlData.report !== null
+                ? mlData.report
+                : {}) as Record<string, unknown>;
+
+        const guidance =
+            (typeof mlData.guidance === "object" && mlData.guidance !== null
+                ? mlData.guidance
+                : {}) as Record<string, unknown>;
+
+        let summary: string =
+            typeof mlData.summary === "string"
+                ? mlData.summary
+                : typeof mlData.message === "string"
+                  ? mlData.message
+                  : "AI analysis completed";
+
+        if (summary === "AI analysis completed" && typeof report.summary === "string") {
+            summary = report.summary as string;
+        }
+
+        const reusable = (guidance as { reusable?: Record<string, unknown> }).reusable || {};
+        const recyclable = (guidance as { recyclable?: Record<string, unknown> }).recyclable || {};
+        const disposable = (guidance as { disposable?: Record<string, unknown> }).disposable || {};
+
+        const confPct =
+            typeof confidence === "number" && confidence > 0 && confidence <= 1
+                ? `${(confidence * 100).toFixed(1)}%`
+                : typeof confidence === "number" && confidence > 1
+                  ? `${confidence.toFixed(1)}%`
+                  : "—";
+
+        // 3. Map to Frontend Structure
         const responseData = {
             detection: {
                 item: prediction,
                 category: category,
-                // Format confidence as a percentage (e.g., 1 -> 100%)
-                confidence: typeof confidence === 'number' ? `${(confidence * 100).toFixed(2)}%` : "100%",
-                summary: summary
+                confidence: confPct,
+                summary: summary,
             },
-            // Comprehensive Guidance Structure
             guidance: {
                 reuse: {
-                    possible: guidance?.reusable?.possible || false,
-                    ideas: guidance?.reusable?.ideas || [],
-                    explanation: guidance?.reusable?.explanation || ""
+                    possible: (reusable.possible as boolean) ?? true,
+                    ideas: Array.isArray(reusable.ideas)
+                        ? (reusable.ideas as string[])
+                        : reusable.ideas
+                          ? [String(reusable.ideas)]
+                          : [],
+                    explanation:
+                        (report.importance as string) ||
+                        (reusable.explanation as string) ||
+                        (reusable.tips as string) ||
+                        "",
                 },
                 recycle: {
-                    possible: guidance?.recyclable?.possible || false,
-                    methods: guidance?.recyclable?.methods || [],
-                    explanation: guidance?.recyclable?.explanation || ""
+                    possible: (recyclable.possible as boolean) ?? true,
+                    methods: Array.isArray(recyclable.methods)
+                        ? (recyclable.methods as string[])
+                        : recyclable.methods
+                          ? [String(recyclable.methods)]
+                          : [],
+                    explanation:
+                        (report.why_it_matters as string) ||
+                        (recyclable.explanation as string) ||
+                        (recyclable.tips as string) ||
+                        "",
                 },
                 disposal: {
-                    type: guidance?.disposable?.type || "external",
-                    homeMethods: guidance?.disposable?.home_disposal || "",
-                    externalOptions: guidance?.disposable?.external_options || [],
-                    explanation: guidance?.disposable?.explanation || ""
-                }
+                    type: (disposable.type as string) || "external",
+                    homeMethods:
+                        (disposable.home_disposal as string) ||
+                        (disposable.homeMethods as string) ||
+                        "",
+                    externalOptions: Array.isArray(disposable.external_options)
+                        ? (disposable.external_options as string[])
+                        : disposable.external_options
+                          ? [String(disposable.external_options)]
+                          : [],
+                    explanation: report.facts
+                        ? Array.isArray(report.facts)
+                            ? (report.facts as string[]).join(". ")
+                            : String(report.facts)
+                        : (disposable.explanation as string) || "",
+                },
             },
-            // NGO and Community Support
             ngo: {
-                available: ngo_support?.available || false,
-                suggestion: ngo_support?.suggestion || ""
+                available: true,
+                suggestion: Array.isArray(report.innovations)
+                    ? String((report.innovations as unknown[])[0] || "")
+                    : (report.innovations as string) ||
+                      "Look for local repair cafés, e-waste drives, and community composting in your area.",
             },
-           
-            
         };
 
         return res.json(responseData);
@@ -100,7 +172,7 @@ export const analyzeWasteImage = async (req: any, res: Response) => {
 // --- 2. [CITIZEN] - LOG WASTE & CREATE PICKUP ---
 export const logWasteAndRequestPickup = async (req: any, res: Response) => {
     try {
-        const { materialName, latitude, longitude, categoryId, recycleTip, reuseTip, disposeTip, requestPickup } = req.body;
+        const { materialName, latitude, longitude, categoryId, recycleTip, reuseTip, disposeTip, requestPickup, centerId } = req.body;
         const file = req.file;
 
         let imageUrl = "";
@@ -127,23 +199,29 @@ export const logWasteAndRequestPickup = async (req: any, res: Response) => {
             }
         });
 
-        // 2. If user wants pickup immediately, find nearest center and create request
+        // 2. If user wants pickup immediately, attach the selected center or nearest matching center.
         if (requestPickup) {
-            const nearestCenter = await prisma.recyclingCenter.findFirst({
-                where: { categoryId }
-                // Yahan tum spatial query bhi laga sakte ho future mein
-            });
-
-            if (nearestCenter) {
-                await prisma.pickupRequest.create({
-                    data: {
-                        wasteLogId: wasteLog.id,
-                        citizenId: req.user.citizenId,
-                        centerId: nearestCenter.id,
-                        status: 'PENDING'
-                    }
-                });
+            let center = null;
+            if (centerId) {
+                center = await prisma.recyclingCenter.findUnique({ where: { id: String(centerId) } });
             }
+
+            if (!center && categoryId) {
+                center = await prisma.recyclingCenter.findFirst({ where: { categoryId } });
+            }
+
+            if (!center) {
+                return res.status(400).json({ error: "No recycling center available to fulfill this pickup request." });
+            }
+
+            await prisma.pickupRequest.create({
+                data: {
+                    wasteLogId: wasteLog.id,
+                    citizenId: req.user.citizenId,
+                    centerId: center.id,
+                    status: 'PENDING'
+                }
+            });
         }
 
         res.status(201).json({ message: "Waste logged successfully", data: wasteLog });
@@ -166,7 +244,7 @@ export const getPendingPickups = async (req: any, res: Response) => {
                 // Optional: Filter by organization/center
             },
             include: {
-                wasteLog: true,
+                wasteLog: { include: { category: true } },
                 citizen: { include: { user: { select: { fullname: true, phoneNumber: true } } } }
             }
         });
@@ -274,6 +352,101 @@ export const getRecyclingCenters = async (req: Request, res: Response) => {
     }
 };
 
+/** Public list of waste categories (for logging scans when no recycling center exists yet). */
+export const getWasteCategories = async (req: Request, res: Response) => {
+    try {
+        const categories = await prisma.category.findMany({
+            select: { id: true, name: true, description: true },
+            orderBy: { name: "asc" },
+        });
+        res.json(categories);
+    } catch (error: any) {
+        res.status(500).json({ error: error?.message || "Failed to fetch categories" });
+    }
+};
+
+/**
+ * Nearby recycling centers: sorted by Haversine distance from user lat/lng.
+ * Optionally filters by categoryId. Optionally calls ML `nearby_prediction` (same host as predict).
+ * Query: latitude, longitude, categoryId?, address?
+ */
+export const getNearbyRecyclingCenters = async (req: Request, res: Response) => {
+    try {
+        const lat = parseFloat(String(req.query.latitude ?? ""));
+        const lng = parseFloat(String(req.query.longitude ?? ""));
+        if (Number.isNaN(lat) || Number.isNaN(lng)) {
+            return res.status(400).json({
+                message: "Query parameters latitude and longitude are required (decimal degrees).",
+            });
+        }
+
+        const categoryId = typeof req.query.categoryId === "string" ? req.query.categoryId : undefined;
+        const address = typeof req.query.address === "string" ? req.query.address : undefined;
+
+        const where = categoryId ? { categoryId } : {};
+        const rows = await prisma.recyclingCenter.findMany({
+            where,
+            include: { category: { select: { id: true, name: true } } },
+        });
+
+        const centers = rows
+            .map((c) => ({
+                ...c,
+                distanceKm: Math.round(distanceKm(lat, lng, c.latitude, c.longitude) * 10) / 10,
+            }))
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .slice(0, 25);
+
+        let mlNearby: unknown[] = [];
+        try {
+            const mlBase = (process.env.ML_SERVICE_BASE_URL || DEFAULT_ML_BASE).replace(/\/$/, "");
+            const nearbyPath = process.env.ML_NEARBY_PATH || "/nearby_prediction";
+            const nearbyUrl = `${mlBase}${nearbyPath.startsWith("/") ? nearbyPath : "/" + nearbyPath}`;
+
+            const mlRes = await axios.post(
+                nearbyUrl,
+                {
+                    latitude: lat,
+                    longitude: lng,
+                    address: address ?? "",
+                    category_id: categoryId ?? null,
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "ngrok-skip-browser-warning": "true",
+                    },
+                    timeout: 25000,
+                }
+            );
+
+            const d = mlRes.data;
+            if (Array.isArray(d)) mlNearby = d;
+            else if (d && typeof d === "object") {
+                const o = d as Record<string, unknown>;
+                const arr =
+                    (Array.isArray(o.centers) && o.centers) ||
+                    (Array.isArray(o.results) && o.results) ||
+                    (Array.isArray(o.nearby) && o.nearby) ||
+                    (Array.isArray(o.data) && o.data) ||
+                    [];
+                mlNearby = arr;
+            }
+        } catch {
+            mlNearby = [];
+        }
+
+        res.json({
+            userLocation: { latitude: lat, longitude: lng },
+            centers,
+            mlNearby,
+            mlNearbyAvailable: mlNearby.length > 0,
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error?.message || "Failed to load nearby centers" });
+    }
+};
+
 // --- 8. [STAFF] - GET MY ASSIGNED TASKS ---
 export const getMyTasks = async (req: any, res: Response) => {
     try {
@@ -318,5 +491,103 @@ export const getCitizenStats = async (req: any, res: Response) => {
         });
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch stats" });
+    }
+};
+
+/** Partners / admins: list pickup staff to assign (same organization, or all staff for ADMIN). */
+export const getOrganizationStaff = async (req: any, res: Response) => {
+    try {
+        if (req.user.role === "ADMIN") {
+            const staffRows = await prisma.staff.findMany({
+                where: { user: { role: "WASTE_STAFF" } },
+                include: { user: { select: { id: true, fullname: true, email: true, role: true } } },
+            });
+            return res.json(
+                staffRows.map((s) => ({
+                    id: s.id,
+                    fullname: s.user.fullname,
+                    email: s.user.email,
+                    organization: s.organization,
+                }))
+            );
+        }
+
+        const myStaff = await prisma.staff.findUnique({ where: { userId: req.user.id } });
+        if (!myStaff) return res.status(403).json({ message: "Staff profile not found" });
+
+        const org = myStaff.organization || "General";
+        const staffRows = await prisma.staff.findMany({
+            where: {
+                organization: org,
+                user: { role: "WASTE_STAFF" },
+            },
+            include: { user: { select: { id: true, fullname: true, email: true, role: true } } },
+        });
+
+        res.json(
+            staffRows.map((s) => ({
+                id: s.id,
+                fullname: s.user.fullname,
+                email: s.user.email,
+                organization: s.organization,
+            }))
+        );
+    } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to list staff" });
+    }
+};
+
+/** Department Admin: Get all pickup requests for dashboard */
+export const getDepartmentPickupRequests = async (req: any, res: Response) => {
+    try {
+        const requests = await prisma.pickupRequest.findMany({
+            where: {
+                status: {
+                    in: ['PENDING', 'ASSIGNED']
+                }
+            },
+            include: {
+                wasteLog: {
+                    include: {
+                        category: { select: { name: true } },
+                        citizen: { 
+                            include: { 
+                                user: { select: { fullname: true, phoneNumber: true } } 
+                            } 
+                        }
+                    }
+                },
+                center: {
+                    include: { category: { select: { name: true } } }
+                },
+                staff: {
+                    include: { user: { select: { fullname: true } } }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Transform the data to match the expected format for department dashboard
+        const transformedRequests = requests.map(req => ({
+            id: req.id,
+            title: `Waste Pickup: ${req.wasteLog.materialName}`,
+            description: `Pickup request for ${req.wasteLog.materialName}`,
+            status: req.status === 'PENDING' ? 'OPEN' : req.status === 'ASSIGNED' ? 'IN_PROGRESS' : req.status,
+            createdAt: req.createdAt,
+            updatedAt: req.updatedAt,
+            address: `${req.wasteLog.latitude?.toFixed(4)}, ${req.wasteLog.longitude?.toFixed(4)}`,
+            location: {
+                address: `${req.wasteLog.latitude?.toFixed(4)}, ${req.wasteLog.longitude?.toFixed(4)}`
+            },
+            staff: req.staff,
+            citizen: req.wasteLog.citizen,
+            category: req.wasteLog.category,
+            center: req.center,
+            wasteLog: req.wasteLog
+        }));
+
+        res.json(transformedRequests);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to fetch pickup requests" });
     }
 };

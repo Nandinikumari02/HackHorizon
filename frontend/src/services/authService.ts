@@ -51,5 +51,13 @@ export const authService = {
   logout: () => {
     localStorage.removeItem('eco_token');
     window.location.href = '/login';
-  }
+  },
+
+  forgotPassword: async (_email: string) => {
+    throw new Error('Password reset is not enabled for this build.');
+  },
+
+  resetPassword: async (_payload: { email: string; otp: string; newPassword: string }) => {
+    throw new Error('Password reset is not enabled for this build.');
+  },
 };

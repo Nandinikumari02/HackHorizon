@@ -4,7 +4,7 @@ import prisma from "../lib/prisma";
 export const getMyRewards = async (req: any, res: Response) => {
   try {
     const rewards = await prisma.reward.findMany({
-      where: { userId: req.user.userId },
+      where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' }
     });
 

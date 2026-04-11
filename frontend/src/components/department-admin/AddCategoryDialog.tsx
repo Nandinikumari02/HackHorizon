@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -90,6 +91,9 @@ const handleSubmit = async () => {
             <Tag className="h-5 w-5 text-primary" />
             New Category
           </DialogTitle>
+          <DialogDescription>
+            Create a new waste category for your department
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">

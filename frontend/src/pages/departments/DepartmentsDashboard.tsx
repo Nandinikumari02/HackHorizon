@@ -39,14 +39,13 @@ import { IssueDetailsDialog } from '@/components/department-admin/IssueDetailsDi
 import { AddCategoryDialog } from '@/components/department-admin/AddCategoryDialog';
 
 // API Services
-import { issueService } from '@/services/wasteService';
 import { departmentService } from '@/services/departmentService';
 
 export function DepartmentAdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [departmentIssues, setDepartmentIssues] = useState<any[]>([]);
+  const [departmentPickupRequests, setDepartmentPickupRequests] = useState<any[]>([]);
   const [departmentStaff, setDepartmentStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -61,13 +60,13 @@ export function DepartmentAdminDashboard() {
       if (!isSilent) setLoading(true);
       else setIsRefreshing(true);
 
-      const [issuesRes, staffRes] = await Promise.all([
-        issueService.getDeptIssues(),
+      const [pickupRequestsRes, staffRes] = await Promise.all([
+        departmentService.getDepartmentPickupRequests(),
         departmentService.getMyStaff()
       ]);
 
-      const issuesData = (issuesRes as any)?.data || issuesRes;
-      setDepartmentIssues(Array.isArray(issuesData) ? issuesData : []);
+      const pickupRequestsData = (pickupRequestsRes as any)?.data || pickupRequestsRes;
+      setDepartmentPickupRequests(Array.isArray(pickupRequestsData) ? pickupRequestsData : []);
       
       const staffApiData = (staffRes as any)?.data || staffRes;
       const staffArray = staffApiData?.staff || (Array.isArray(staffApiData) ? staffApiData : []);
@@ -90,13 +89,13 @@ export function DepartmentAdminDashboard() {
     if (user) fetchData();
   }, [user, fetchData]);
 
-  const pendingCount = departmentIssues.filter(i => ["OPEN", "SUBMITTED"].includes(i.status)).length;
-  const inProgressCount = departmentIssues.filter(i => i.status === "IN_PROGRESS").length;
-  const resolvedCount = departmentIssues.filter(i => i.status === "RESOLVED").length;
+  const pendingCount = departmentPickupRequests.filter(i => ["OPEN"].includes(i.status)).length;
+  const inProgressCount = departmentPickupRequests.filter(i => i.status === "IN_PROGRESS").length;
+  const resolvedCount = departmentPickupRequests.filter(i => i.status === "RESOLVED").length;
 
   const filteredIssues = filterStatus === "all" 
-    ? departmentIssues 
-    : departmentIssues.filter(i => i.status === filterStatus);
+    ? departmentPickupRequests 
+    : departmentPickupRequests.filter(i => i.status === filterStatus);
 
   // ✅ Sirf first time load par spinner dikhega
   if (loading && !isRefreshing) {
@@ -135,7 +134,7 @@ export function DepartmentAdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Reports" value={departmentIssues.length} icon={FileWarning} variant="primary" />
+        <StatsCard title="Total Pickup Requests" value={departmentPickupRequests.length} icon={FileWarning} variant="primary" />
         <StatsCard title="Pending Review" value={pendingCount} icon={Clock} variant="warning" />
         <StatsCard title="In Progress" value={inProgressCount} icon={Users} />
         <StatsCard title="Resolved" value={resolvedCount} icon={CheckCircle2} variant="success" />
@@ -145,16 +144,16 @@ export function DepartmentAdminDashboard() {
         <div className="lg:col-span-2 space-y-4">
           <Card className="shadow-sm border-muted/60">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-xl font-bold tracking-tight">Recent Issues</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">Pickup Requests</CardTitle>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-[160px] bg-muted/50 border-none shadow-none text-xs font-medium">
-                  <SelectValue placeholder="All Issues" />
+                  <SelectValue placeholder="All Requests" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="OPEN">New Reports</SelectItem>
+                  <SelectItem value="OPEN">New Requests</SelectItem>
                   <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="RESOLVED">Resolved</SelectItem>
+                  <SelectItem value="RESOLVED">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </CardHeader>
@@ -163,7 +162,7 @@ export function DepartmentAdminDashboard() {
                 <Table>
                   <TableHeader className="bg-muted/20">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[250px] text-xs uppercase font-bold tracking-wider">Issue</TableHead>
+                      <TableHead className="w-[250px] text-xs uppercase font-bold tracking-wider">Pickup Request</TableHead>
                       <TableHead className="text-xs uppercase font-bold tracking-wider">Status</TableHead>
                       <TableHead className="text-xs uppercase font-bold tracking-wider">Reported</TableHead>
                       <TableHead className="text-xs uppercase font-bold tracking-wider">Assigned To</TableHead>
@@ -197,7 +196,7 @@ export function DepartmentAdminDashboard() {
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
                               <IssueDetailsDialog issue={issue} />
-                              {(issue.status === 'OPEN' || issue.status === 'SUBMITTED') && (
+                              {issue.status === 'OPEN' && (
                                 <AssignStaffDialog 
                                   issue={issue} 
                                   staff={departmentStaff} 
@@ -211,7 +210,7 @@ export function DepartmentAdminDashboard() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-sm">
-                          No issues found in this category.
+                          No pickup requests found.
                         </TableCell>
                       </TableRow>
                     )}

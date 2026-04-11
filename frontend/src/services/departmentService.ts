@@ -31,4 +31,7 @@ export const departmentService = {
   getDepartmentAdmins: (departmentId: string) =>
     api.get(`/departments/${departmentId}/admins`),
 
+  // 7. Get Department Pickup Requests for Dashboard
+  getDepartmentPickupRequests: () => api.get('/waste/department-pickups'),
+
 };
